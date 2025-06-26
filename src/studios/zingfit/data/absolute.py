@@ -42,6 +42,7 @@ ROOM_ID_TO_STUDIO_TYPE_MAP = {
     "2062965745611965609": StudioType.AbsoluteSpin,  # Raffles Place Ride
     "1973969112329618498": StudioType.AbsolutePilates,  # Great World Reformer
     "979675880630519234": StudioType.AbsoluteSpin,  # Millenia Walk Ride
+    "2490861537367951014": StudioType.AbsolutePilates,  # Millenia Walk Pilates
 }
 
 # Dictionary of room IDs and studio locations
@@ -60,4 +61,5 @@ ROOM_ID_TO_STUDIO_LOCATION_MAP = {
     "2062965745611965609": StudioLocation.Raffles,  # Raffles Place Ride
     "1973969112329618498": StudioLocation.GreatWorld,  # Great World Reformer
     "979675880630519234": StudioLocation.MilleniaWalk,  # Millenia Walk Ride
+    "2490861537367951014": StudioLocation.MilleniaWalk,  # Millenia Walk Pilates
 }
