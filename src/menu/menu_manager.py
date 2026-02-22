@@ -7,6 +7,7 @@ Description:
 """
 
 import logging
+from typing import Optional
 
 import telebot
 
@@ -20,11 +21,13 @@ from menu import (
     main_page_handler,
     name_filter_page_handler,
     nerd_page_handler,
+    notify_waitlist_available_page_handler,
     start_page_handler,
     studios_page_handler,
     time_page_handler,
     weeks_page_handler,
 )
+from studios.ally.ally import login as ally_login
 from studios.studios_manager import StudiosManager
 
 
@@ -59,6 +62,7 @@ class MenuManager:
         keyboard_manager: KeyboardManager,
         studios_manager: StudiosManager,
         history_manager: HistoryManager,
+        ally_admin_telegram_chat_id: Optional[str],
     ) -> None:
         """
         Initializes the MenuManager instance.
@@ -70,6 +74,8 @@ class MenuManager:
           - keyboard_manager (KeyboardManager): The manager handling keyboard generation and interaction.
           - studios_manager (StudiosManager): The manager handling studios data.
           - history_manager (HistoryManager): The manager handling user history data.
+          - ally_admin_telegram_chat_id (str): The chat id to use to retrieve ally OTP.
+            Should be id of chat of username provided.
 
         """
         self.logger = logger
@@ -78,6 +84,7 @@ class MenuManager:
         self.keyboard_manager = keyboard_manager
         self.studios_manager = studios_manager
         self.history_manager = history_manager
+        self.ally_admin_telegram_chat_id = ally_admin_telegram_chat_id
 
         self.setup_message_handlers()
         self.setup_callback_query_handlers()
@@ -359,4 +366,47 @@ class MenuManager:
                 chat_manager=self.chat_manager,
                 history_manager=self.history_manager,
                 studios_manager=self.studios_manager,
+            )
+
+        @self.bot.message_handler(commands=["notify_waitlist_available"])
+        def notify_waitlist_available_message_handler(message: telebot.types.Message) -> None:
+            notify_waitlist_available_page_handler.notify_waitlist_available_message_handler(
+                message=message,
+                logger=self.logger,
+                bot=self.bot,
+                chat_manager=self.chat_manager,
+                history_manager=self.history_manager,
+                studios_manager=self.studios_manager,
+                full_result_data=self.studios_manager.get_cached_result_data(),
+            )
+
+        @self.bot.message_handler(commands=["ally_login"])
+        def ally_login_message_handler(message: telebot.types.Message) -> None:
+            if self.ally_admin_telegram_chat_id is None:
+                return
+
+            # Only allow the admin to login
+            if str(message.chat.id) != str(self.ally_admin_telegram_chat_id):
+                return
+
+            self.chat_manager.add_message_id_to_delete(chat_id=message.chat.id, message_id=message.id)
+            sent_msg = self.chat_manager.send_prompt(
+                chat_id=message.chat.id,
+                text="Please enter the email to login",
+                reply_markup=None,
+                delete_sent_msg_in_future=True,
+            )
+
+            def ally_login_message_get_username_handler(message: telebot.types.Message) -> None:
+                ally_login(
+                    logger=self.logger,
+                    ally_username=message.text.strip(),
+                    ally_admin_telegram_chat_id=self.ally_admin_telegram_chat_id,
+                    bot=self.bot,
+                    chat_manager=self.chat_manager,
+                )
+
+            self.bot.register_next_step_handler(
+                message=sent_msg,
+                callback=ally_login_message_get_username_handler,
             )

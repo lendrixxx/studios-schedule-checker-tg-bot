@@ -214,6 +214,7 @@ def get_barrys_schedule_and_instructorid_map(logger: logging.Logger) -> tuple[Re
         """
         get_schedule_response = send_get_schedule_request(week=week)
         soup = BeautifulSoup(markup=get_schedule_response.text, features="html.parser")
+        get_schedule_response.close()
 
         # Get schedule
         date_class_data_list_dict = get_schedule_from_response_soup(logger=logger, soup=soup)

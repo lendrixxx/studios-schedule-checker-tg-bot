@@ -23,13 +23,6 @@ from studios.zingfit.data.absolute import ROOM_ID_TO_STUDIO_LOCATION_MAP as ABSO
 from studios.zingfit.data.absolute import ROOM_ID_TO_STUDIO_TYPE_MAP as ABSOLUTE_ROOM_ID_TO_STUDIO_TYPE_MAP
 from studios.zingfit.data.absolute import TABLE_HEADING_DATE_FORMAT as ABSOLUTE_TABLE_HEADING_DATE_FORMAT
 from studios.zingfit.data.absolute import URL_SUBDOMAIN as ABSOLUTE_URL_SUBDOMAIN
-from studios.zingfit.data.ally import LOCATION_TO_SITE_ID_MAP as ALLY_LOCATION_TO_SITE_ID_MAP
-from studios.zingfit.data.ally import MAX_SCHEDULE_WEEKS as ALLY_MAX_WEEKS
-from studios.zingfit.data.ally import ROOM_ID_TO_STUDIO_LOCATION_MAP as ALLY_ROOM_ID_TO_STUDIO_LOCATION_MAP
-from studios.zingfit.data.ally import ROOM_ID_TO_STUDIO_TYPE_MAP as ALLY_ROOM_ID_TO_STUDIO_TYPE_MAP
-from studios.zingfit.data.ally import TABLE_HEADING_DATE_FORMAT as ALLY_TABLE_HEADING_DATE_FORMAT
-from studios.zingfit.data.ally import URL_SUBDOMAIN as ALLY_URL_SUBDOMAIN
-from studios.zingfit.data.ally import clean_class_name as ally_clean_class_name_func
 from studios.zingfit.zingfit import (
     get_instructorid_map_from_response_soup,
     get_schedule_from_response_soup,
@@ -39,7 +32,6 @@ from studios.zingfit.zingfit import (
 from tests.conftest import is_classes_dict_equal
 from tests.studios.zingfit.expected_results import (
     absolute_expected_results,
-    ally_expected_results,
 )
 
 
@@ -199,17 +191,6 @@ def test_send_get_schedule_request_multiple_locations_exceeded(mocker: pytest_mo
             ),
             id="Absolute Raffles 6 to 12 April",
         ),
-        pytest.param(
-            GetScheduleTestArgs(
-                response_file_name="ally_crossstreet_7_to_13_apr.html",
-                table_heading_date_format=ALLY_TABLE_HEADING_DATE_FORMAT,
-                room_id_to_studio_type_map=ALLY_ROOM_ID_TO_STUDIO_TYPE_MAP,
-                room_id_to_studio_location_map=ALLY_ROOM_ID_TO_STUDIO_LOCATION_MAP,
-                clean_class_name_func=ally_clean_class_name_func,
-                expected_result=ally_expected_results.EXPECTED_CROSSSTREET_7_TO_13_APR_SCHEDULE,
-            ),
-            id="Ally Cross Street 7 to 13 April",
-        ),
     ],
 )
 def test_get_schedule_from_response_soup_single_location(
@@ -262,17 +243,6 @@ def test_get_schedule_from_response_soup_single_location(
                 expected_result=absolute_expected_results.EXPECTED_MW_AND_I12_7_TO_12_APR_SCHEDULE,
             ),
             id="Absolute Millenia Walk and i12 7 to 12 April",
-        ),
-        pytest.param(
-            GetScheduleTestArgs(
-                response_file_name="ally_crossstreet_and_maxwell_6_to_12_may.html",
-                table_heading_date_format=ALLY_TABLE_HEADING_DATE_FORMAT,
-                room_id_to_studio_type_map=ALLY_ROOM_ID_TO_STUDIO_TYPE_MAP,
-                room_id_to_studio_location_map=ALLY_ROOM_ID_TO_STUDIO_LOCATION_MAP,
-                clean_class_name_func=ally_clean_class_name_func,
-                expected_result=ally_expected_results.EXPECTED_CROSSSTREET_AND_MAXWELL_6_TO_12_MAY_SCHEDULE,
-            ),
-            id="Ally Cross Street and Maxwell 6 to 12 May",
         ),
     ],
 )
@@ -466,13 +436,6 @@ def test_get_schedule_from_response_soup_failed_to_map_room(
             ),
             id="Absolute Raffles 6 to 12 April",
         ),
-        pytest.param(
-            GetInstructorIDTestArgs(
-                response_file_name="ally_crossstreet_7_to_13_apr.html",
-                expected_result=ally_expected_results.EXPECTED_CROSSSTREET_7_TO_13_APR_INSTRUCTORID_MAP,
-            ),
-            id="Ally Cross Street 7 to 13 April",
-        ),
     ],
 )
 def test_get_instructorid_map_from_response_soup_single_location(
@@ -512,13 +475,6 @@ def test_get_instructorid_map_from_response_soup_single_location(
                 expected_result=absolute_expected_results.EXPECTED_MW_AND_I12_7_TO_12_APR_INSTRUCTORID_MAP,
             ),
             id="Absolute Millenia Walk and i12 7 to 12 April",
-        ),
-        pytest.param(
-            GetInstructorIDTestArgs(
-                response_file_name="ally_crossstreet_and_maxwell_6_to_12_may.html",
-                expected_result=ally_expected_results.EXPECTED_CROSSSTREET_AND_MAXWELL_6_TO_12_MAY_INSTRUCTORID_MAP,
-            ),
-            id="Ally Cross Street and Maxwell 6 to 12 May",
         ),
     ],
 )
@@ -665,56 +621,3 @@ def test_get_zingfit_schedule_and_instructorid_map_absolute_flow(
         actual=schedule.classes,
     )
     assert instructorid_map == absolute_expected_results.EXPECTED_CTP_AND_GW_7_TO_20_APR_INSTRUCTORID_MAP
-
-
-def test_get_zingfit_schedule_and_instructorid_map_ally_flow(
-    mocker: pytest_mock.plugin.MockerFixture, load_response_file: Callable[[str], str]
-) -> None:
-    """
-    Test get_ally_schedule_and_instructorid_map flow.
-
-    Args:
-      - mocker (pytest_mock.plugin.MockerFixture): Provides mocking utilities for patching and mocking.
-      - load_response_file (Callable[[str], str]): Fixture that loads file content from the example_responses folder.
-
-    """
-    # Setup mocks
-    mock_logger = mocker.Mock(spec=logging.Logger)
-
-    mock_week_0_request_response = mocker.Mock()
-    mock_week_0_request_response.text = load_response_file("ally_crossstreet_8_to_14_apr.html")
-
-    mock_week_1_request_response = mocker.Mock()
-    mock_week_1_request_response.text = load_response_file("ally_crossstreet_15_to_21_apr.html")
-
-    mock_week_2_request_response = mocker.Mock()
-    mock_week_2_request_response.text = load_response_file("ally_crossstreet_22_to_28_apr.html")
-
-    mocker.patch(
-        "requests.get",
-        side_effect=[
-            mock_week_0_request_response,
-            mock_week_1_request_response,
-            mock_week_2_request_response,
-        ],
-    )
-
-    # Call the function to test
-    schedule, instructorid_map = get_zingfit_schedule_and_instructorid_map(
-        logger=mock_logger,
-        studio_name="test studio",
-        studio_url_subdomain=ALLY_URL_SUBDOMAIN,
-        table_heading_date_format=ALLY_TABLE_HEADING_DATE_FORMAT,
-        max_weeks=ALLY_MAX_WEEKS,
-        location_to_site_id_map=ALLY_LOCATION_TO_SITE_ID_MAP,
-        room_id_to_studio_type_map=ALLY_ROOM_ID_TO_STUDIO_TYPE_MAP,
-        room_id_to_studio_location_map=ALLY_ROOM_ID_TO_STUDIO_LOCATION_MAP,
-        clean_class_name_func=ally_clean_class_name_func,
-    )
-
-    # Assert that the response is as expected
-    assert is_classes_dict_equal(
-        expected=ally_expected_results.EXPECTED_CROSSSTREET_8_TO_28_APR_SCHEDULE,
-        actual=schedule.classes,
-    )
-    assert instructorid_map == ally_expected_results.EXPECTED_CROSSSTREET_8_TO_28_APR_INSTRUCTORID_MAP

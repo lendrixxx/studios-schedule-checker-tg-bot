@@ -27,6 +27,7 @@ class ClassData:
       - time (str): Scheduled time of the class.
       - availability (ClassAvailability): Availability status of the class.
       - capacity_info (CapacityInfo): Capacity information of the class.
+      - class_id (str): ID of the class.
 
     """
 
@@ -37,6 +38,7 @@ class ClassData:
     time: str
     availability: ClassAvailability
     capacity_info: CapacityInfo
+    class_id: str
 
     def __init__(
         self,
@@ -47,6 +49,7 @@ class ClassData:
         time: str,
         availability: ClassAvailability,
         capacity_info: CapacityInfo,
+        class_id: str = "",
     ) -> None:
         """
         Initializes the ClassData instance.
@@ -59,6 +62,7 @@ class ClassData:
           - time (str): The scheduled time of the class.
           - availability (ClassAvailability): The availability status of the class.
           - capacity_info (CapacityInf): The capacity information of the class.
+          - class_id (str): The ID of the class.
 
         """
         self.studio = studio
@@ -68,6 +72,7 @@ class ClassData:
         self.time = time
         self.availability = availability
         self.capacity_info = capacity_info
+        self.class_id = class_id
 
     def __eq__(self, other: object) -> bool:
         """
@@ -90,6 +95,7 @@ class ClassData:
             and self.name == other.name
             and self.instructor == other.instructor
             and self.time == other.time
+            and self.class_id == other.class_id
         )
 
     def __lt__(self, other: "ClassData") -> bool:
@@ -123,3 +129,33 @@ class ClassData:
             other.capacity_info,
         )
         return self_key < other_key
+
+    def get_string(self, include_availability: bool, include_capacity_info: bool) -> str:
+        availability_str = ""
+        if include_availability:
+            if self.availability == ClassAvailability.Waitlist:
+                availability_str = "[W] "
+            elif self.availability == ClassAvailability.Full:
+                availability_str = "[F] "
+            elif self.availability == ClassAvailability.Cancelled:
+                availability_str = "[Cancelled] "
+
+        result_str = ""
+        if self.location == StudioLocation.Null:
+            result_str += f"*{availability_str + self.time}* - " f"{self.name} ({self.instructor})"
+        else:
+            result_str += (
+                f"*{availability_str + self.time}* - {self.name} " f"@ {self.location.value} ({self.instructor})"
+            )
+
+        if include_capacity_info:
+            if self.capacity_info.has_info:
+                if self.availability == ClassAvailability.Waitlist:
+                    result_str += f" - {self.capacity_info.waitlist_reserved} Member(s) on Waitlist"
+                else:
+                    result_str += f" - {self.capacity_info.remaining} Spot(s) Remaining"
+
+        if self.class_id != "":
+            result_str += f" `{self.class_id}`"
+
+        return result_str

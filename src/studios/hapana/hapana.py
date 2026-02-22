@@ -5,7 +5,6 @@ Description:
   This file defines functions to handle the retrieving of class schedules and instructor IDs for Hapana studios.
 """
 
-import json
 import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -66,6 +65,8 @@ def parse_get_schedule_response(
     response: requests.models.Response,
     room_id_to_studio_type_map: dict[str, StudioType],
     room_name_to_studio_location_map: dict[str, StudioLocation],
+    location: StudioLocation,
+    location_to_site_id_map: dict[str, str],
 ) -> dict[date, list[ClassData]]:
     """
     Parses the get schedule response to extract the class schedule data.
@@ -77,6 +78,8 @@ def parse_get_schedule_response(
       - room_id_to_studio_type_map (dict[str, StudioType]): The dictionary of room IDs and studio types.
       - room_name_to_studio_location_map (dict[str, StudioLocation]):
         The dictionary of room name strings and studio locations.
+      - location (StudioLocation): The studio location to retrieve the schedule for.
+      - location_to_site_id_map (dict[str, str]): Dictionary of location and site IDs.
 
     Returns:
       - dict[date, list[ClassData]]: Dictionary of dates and details of classes.
@@ -88,7 +91,7 @@ def parse_get_schedule_response(
 
     result_dict = {}
     try:
-        response_json = json.loads(s=response.text)
+        response_json = response.json()
         if "success" not in response_json:
             logger.warning(f"Failed to get {studio_name} schedule - API callback failed: {response_json}")
             return {}
@@ -101,7 +104,8 @@ def parse_get_schedule_response(
             if data["sessionStatus"] == "complete":
                 continue
 
-            class_date = datetime.strptime(data["sessionDate"], "%Y-%m-%d").date()
+            class_date_str = data["sessionDate"]
+            class_date = datetime.strptime(class_date_str, "%Y-%m-%d").date()
             instructors = []
             for instructorData in data["instructorData"]:
                 instructors.append(instructorData["instructorName"])
@@ -123,8 +127,10 @@ def parse_get_schedule_response(
                 )
                 studio = StudioType.Unknown
 
+            class_id = ""
             if room_name in room_name_to_studio_location_map:
                 location = room_name_to_studio_location_map[room_name]
+                class_id = f"{data['sessionID']}|{location_to_site_id_map[location]}|{class_date_str}"
             else:
                 logger.warning(
                     f"Failed to map room name '{room_name}' to studio location for {studio_name}: "
@@ -147,6 +153,7 @@ def parse_get_schedule_response(
                     waitlist_capacity=data["waitlistCapacity"],
                     waitlist_reserved=data["waitlistReserved"],
                 ),
+                class_id=class_id,
             )
 
             if class_date not in result_dict:
@@ -211,7 +218,10 @@ def get_hapana_schedule(
             response=get_schedule_response,
             room_id_to_studio_type_map=room_id_to_studio_type_map,
             room_name_to_studio_location_map=room_name_to_studio_location_map,
+            location=location,
+            location_to_site_id_map=location_to_site_id_map,
         )
+        get_schedule_response.close()
         with result_lock:
             result.add_classes(classes=date_class_data_list_dict)
 
@@ -269,7 +279,7 @@ def get_instructorid_map(
             return
 
         try:
-            response_json = json.loads(s=response.text)
+            response_json = response.json()
             if not response_json["success"]:
                 logger.warning(
                     f"Failed to get {studio_name} list of instructors for {location} - "
@@ -356,7 +366,7 @@ def get_hapana_security_token(logger: logging.Logger, studio_name: str, site_id:
         return ""
 
     try:
-        response_json = json.loads(s=response.text)
+        response_json = response.json()
     except Exception as e:
         logger.warning(f"Failed to get {studio_name} security token - {e}: {response.text}")
         return ""

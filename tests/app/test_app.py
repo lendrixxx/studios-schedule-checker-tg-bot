@@ -39,7 +39,7 @@ def mock_env_vars(monkeypatch: pytest.MonkeyPatch) -> EnvVarValues:
     )
     monkeypatch.setenv("RENDER_EXTERNAL_URL", values.render_external_url)
     monkeypatch.setenv("WEBHOOK_PATH", values.webhook_path)
-    monkeypatch.setenv("BOT_TOKEN", values.bot_token)
+    monkeypatch.setenv("BOOKER_BOT_TOKEN", values.bot_token)
     monkeypatch.setenv("PORT", values.port)
     return values
 
@@ -284,7 +284,7 @@ class LoadEnvVarsMissingVarsArgs(NamedTuple):
         ),
         pytest.param(
             LoadEnvVarsMissingVarsArgs(
-                env_var_to_delete="BOT_TOKEN",
+                env_var_to_delete="BOOKER_BOT_TOKEN",
                 is_required=True,
             ),
             id="Bot token not set",

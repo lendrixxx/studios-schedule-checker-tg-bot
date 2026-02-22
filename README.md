@@ -23,8 +23,8 @@ _Note: Screenshots are not updated to show support for all studios. Usage for di
 - PYTHONPATH = "src" (required)
   - Value should be set to "src" to ensure that Python can locate the modules in the src folder correctly.
 
-- BOT_TOKEN (required)
-  - To be able to run the bot, you will need to get a bot token from @botfather. FreeCodeCamp has a nice guide [here](https://www.freecodecamp.org/news/how-to-create-a-telegram-bot-using-python/) that was used as a reference for this project.
+- BOOKER_BOT_TOKEN (required)
+  - To be able to run the bot, you will need to get a bot token from @botfather. FreeCodeCamp has a nice [guide](https://www.freecodecamp.org/news/how-to-create-a-telegram-bot-using-python/) that was used as a reference for this project.
 - TELEGRAM_BOT_EXTERNAL_URL (required)
   - This will be used as the base URL for the server that listens for webhook requests.
   - For local testing, [ngrok](https://ngrok.com) can be used. After setting it up and running it with `ngrok http <port>`, you will get a URL like <https://43b1-121-192-143-222.ngrok-free.app>. Set TELEGRAM_BOT_EXTERNAL_URL to this value.
@@ -32,6 +32,16 @@ _Note: Screenshots are not updated to show support for all studios. Usage for di
   - The webhook path can be any value. It defines the route where your Telegram bot's webhook will be set as well as the route for the server to listen for requests on.
 - PORT (not required, defaults to 80)
   - The port that the server will be listening on.
+- ALLY_ADMIN_TELEGRAM_CHAT_ID (not required)
+  - Telegram chat ID that bot will request OTP for when logging in.
+  - If not provided, Ally schedule will not be retrieved once provided access/refresh tokens expire.
+- ALLY_ACCESS_TOKEN (not required)
+  - Access token to use to retrieve Ally schedule.
+    - Refer to the [Retrieving Ally Access & Refresh Tokens](#retrieving-ally-access--refresh-tokens) section below for instructions on how to obtain these tokens manually.
+  - If not provided, manual login will be required when starting bot.
+- ALLY_REFRESH_TOKEN (not required)
+  - Refresh token to use to refresh Ally access token.
+    - Refer to the [Retrieving Ally Access & Refresh Tokens](#retrieving-ally-access--refresh-tokens) section below for instructions on how to obtain these tokens manually.
 
 ## Unit Tests
 
@@ -111,3 +121,119 @@ Classes prefixed with **[F]** are classes that are currently full.\
 
 4. Follow the instructions from the prompt.\
 ![image](https://github.com/user-attachments/assets/fbe7ddaf-23ea-419d-8cd7-13391e3623f7)
+
+## Retrieving Ally Access & Refresh Tokens
+
+You can manually retrieve fresh tokens by calling Ally’s authentication endpoints directly.
+
+> ⚠️ Note: These tokens grant account access. Do not share them publicly.
+
+---
+
+### Step 1 - Sign In
+
+Method: POST\
+URL: <https://api.ally.family/auth/sign-in>\
+Body:
+
+```json
+{
+  "email": "<your_email>"
+}
+```
+
+Response:
+
+```json
+{
+  "code": 200,
+  "message": "Login successfully",
+  "data": {
+    "uid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  }
+}
+```
+
+Save the `uid` value - it will be required in the next steps.
+
+---
+
+### Step 2 - Send OTP
+
+Method: POST\
+URL: <https://api.ally.family/auth/send-otp>\
+Body:
+
+```json
+{
+  "id": "<uid_from_step_1>"
+}
+```
+
+You will receive an OTP via your registered email.
+The API response can be ignored.
+
+---
+
+### Step 3 - Verify OTP
+
+Method: POST\
+URL: <https://api.ally.family/auth/verif-otp>\
+Body:
+
+```json
+{
+  "otp": "<otp_received>",
+  "id": "<uid_from_step_1>"
+}
+```
+
+Response:
+
+```json
+{
+  "code": 200,
+  "message": "OTP verified successfully",
+  "data": {
+    "accessToken": "...",
+    "refreshToken": "..."
+  }
+}
+```
+
+---
+
+### Notes
+
+- Access tokens expire after a period of time.
+- If both tokens expire, repeat the steps above.
+
+## Refreshing Ally Access Token Using Refresh Token
+
+Method: POST\
+URL: <https://api.ally.family/auth/refresh-token>\
+Header:
+
+```text
+Authorization: Bearer <access_token>
+```
+
+Body:
+
+```json
+{
+    "oldToken": "<access_token>",
+    "refreshToken": "<refresh_token>"
+}
+```
+
+Response:
+
+```json
+{
+    "code": 200,
+    "message": "Login successfully",
+    "accessToken": "...",
+    "refreshToken": "..."
+}
+```

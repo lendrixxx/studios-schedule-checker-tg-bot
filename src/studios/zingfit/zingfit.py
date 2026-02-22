@@ -194,6 +194,8 @@ def get_schedule_from_response_soup(
                 logger.warning(f"Failed to get {studio_name} session studio location for room '{room}' - {e}")
                 location = StudioLocation.Unknown
 
+            class_id = reserve_table_body_data_div.get("data-classid")
+
             class_details = ClassData(
                 studio=studio,
                 location=location,
@@ -202,6 +204,7 @@ def get_schedule_from_response_soup(
                 time=schedule_time,
                 availability=availability,
                 capacity_info=CapacityInfo(),
+                class_id=class_id,
             )
 
             if current_date not in result_dict:
@@ -332,6 +335,7 @@ def get_zingfit_schedule_and_instructorid_map(
                 week=week,
             )
             soup = BeautifulSoup(markup=get_schedule_response.text, features="html.parser")
+            get_schedule_response.close()
 
             # Get schedule
             date_class_data_list_dict = get_schedule_from_response_soup(

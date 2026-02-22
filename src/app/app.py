@@ -46,8 +46,10 @@ class App:
       - keep_alive_thread (threading.Thread):
         The thread used by the server to ping itself. Used to keep deployment on Render alive.
       - server_thread (threading.Thread): The thread used by the server to handle REST requests.
-      - studios_manager_thread (threading.Thread):
+      - studios_manager_update_schedule_thread (threading.Thread):
         The thread used by the schedule manager to handle retrieving of schedules.
+      - studios_manager_check_ally_token_thread (threading.Thread):
+        The thread used by the schedule manager to check if the access token for ally is expiring.
 
     """
 
@@ -64,7 +66,8 @@ class App:
     menu_manager: MenuManager
     keep_alive_thread: threading.Thread
     server_thread: threading.Thread
-    studios_manager_thread: threading.Thread
+    studios_manager_update_schedule_thread: threading.Thread
+    studios_manager_check_ally_token_thread: threading.Thread
 
     def __init__(self) -> None:
         """
@@ -87,11 +90,27 @@ class App:
         start_command = telebot.types.BotCommand(command="start", description="Check schedules")
         nerd_command = telebot.types.BotCommand(command="nerd", description="Nerd mode")
         instructors_command = telebot.types.BotCommand(command="instructors", description="Show list of instructors")
-        self.bot.set_my_commands(commands=[start_command, nerd_command, instructors_command])
+        notify_waitlist_available_command = telebot.types.BotCommand(
+            command="notify_waitlist_available",
+            description="Subscribe to notifications when a full class becomes available for booking",
+        )
+        self.bot.set_my_commands(
+            commands=[
+                start_command,
+                nerd_command,
+                instructors_command,
+                notify_waitlist_available_command,
+            ]
+        )
 
         self.chat_manager = ChatManager(logger=self.logger, bot=self.bot)
         self.keyboard_manager = KeyboardManager()
-        self.studios_manager = StudiosManager(logger=self.logger)
+        self.studios_manager = StudiosManager(
+            logger=self.logger,
+            bot=self.bot,
+            chat_manager=self.chat_manager,
+            ally_admin_telegram_chat_id=self.ally_admin_telegram_chat_id,
+        )
         self.history_manager = HistoryManager(logger=self.logger)
         self.server = Server(
             logger=self.logger,
@@ -107,14 +126,19 @@ class App:
             keyboard_manager=self.keyboard_manager,
             studios_manager=self.studios_manager,
             history_manager=self.history_manager,
+            ally_admin_telegram_chat_id=self.ally_admin_telegram_chat_id,
         )
 
         # Setup threads
         self.stop_event = threading.Event()
         self.keep_alive_thread = threading.Thread(target=self.keep_alive, daemon=True)
         self.server_thread = threading.Thread(target=self.server.start_server, daemon=True)
-        self.studios_manager_thread = threading.Thread(
-            target=self.studios_manager.schedule_update_cached_result_data,
+        self.studios_manager_update_schedule_thread = threading.Thread(
+            target=self.studios_manager.schedule_update_cached_result_data_and_notify_waitlist_available,
+            daemon=True,
+        )
+        self.studios_manager_check_ally_token_thread = threading.Thread(
+            target=self.studios_manager.schedule_check_ally_access_token,
             daemon=True,
         )
 
@@ -160,9 +184,9 @@ class App:
             self.logger.error("WEBHOOK_PATH env var required but not set")
             loaded_successfully = False
 
-        self.bot_token, success = _load_env_vars_internal("BOT_TOKEN", "")
+        self.bot_token, success = _load_env_vars_internal("BOOKER_BOT_TOKEN", "")
         if not success:
-            self.logger.error("BOT_TOKEN env var required but not set")
+            self.logger.error("BOOKER_BOT_TOKEN env var required but not set")
             loaded_successfully = False
 
         port = os.getenv("PORT")
@@ -176,6 +200,11 @@ class App:
             except Exception as e:
                 self.logger.warning(f"Failed to convert port '{port}' to int - {e}. Defaulting to 80")
                 self.server_port = 80
+
+        self.ally_admin_telegram_chat_id, success = _load_env_vars_internal("ALLY_ADMIN_TELEGRAM_CHAT_ID", "")
+        if not success:
+            self.logger.error("ALLY_ADMIN_TELEGRAM_CHAT_ID env var not found. Ally schedule will not be available")
+            self.ally_admin_telegram_chat_id = None
 
         if not loaded_successfully:
             self.logger.error("Failed to initialize app. Exiting...")
@@ -237,7 +266,8 @@ class App:
         self.logger.info("Starting threads...")
         self.server_thread.start()
         self.keep_alive_thread.start()
-        self.studios_manager_thread.start()
+        self.studios_manager_update_schedule_thread.start()
+        self.studios_manager_check_ally_token_thread.start()
         self.logger.info("Bot started!")
 
         # Keep the main thread alive

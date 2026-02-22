@@ -106,11 +106,11 @@ def test_start(
     is_classes_dict_equal(expected=expected_classes, actual=cached_result_data)
 
 
-def test_schedule_update_cached_result_data(
+def test_schedule_update_cached_result_data_and_notify_waitlist_available(
     mocker: pytest_mock.MockerFixture,
 ) -> None:
     """
-    Test schedule_update_cached_result_data flow.
+    Test schedule_update_cached_result_data_and_notify_waitlist_available flow.
 
     Args:
       - mocker (pytest_mock.plugin.MockerFixture): Provides mocking utilities for patching and mocking.
@@ -130,7 +130,9 @@ def test_schedule_update_cached_result_data(
     studios_manager = StudiosManager(logger=mock_logger)
 
     # Call the function to test
-    studios_manager.schedule_update_cached_result_data()
+    studios_manager.schedule_update_cached_result_data_and_notify_waitlist_available()
 
     # Assert that flow was called with the expected arguments
-    mock_schedule_every.minutes.do.assert_called_once_with(job_func=studios_manager.update_cached_result_data)
+    mock_schedule_every.minutes.do.assert_called_once_with(
+        job_func=studios_manager.update_cached_result_data_and_notify_waitlist_available
+    )

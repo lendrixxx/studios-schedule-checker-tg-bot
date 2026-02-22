@@ -11,11 +11,10 @@ from __future__ import annotations
 import calendar
 from copy import copy
 from datetime import date, datetime, timedelta
-from typing import Optional
+from typing import Optional, Tuple
 
 import pytz
 
-from common.class_availability import ClassAvailability
 from common.class_data import ClassData
 from common.query_data import QueryData
 from common.studio_location import StudioLocation
@@ -170,35 +169,22 @@ class ResultData:
             result_str += f"{date_str}\n"
 
             for class_details in sorted(self.classes[classes_date]):
-                availability_str = ""
-                if class_details.availability == ClassAvailability.Waitlist:
-                    availability_str = "[W] "
-                elif class_details.availability == ClassAvailability.Full:
-                    availability_str = "[F] "
-                elif class_details.availability == ClassAvailability.Cancelled:
-                    availability_str = "[Cancelled] "
-
-                if class_details.location == StudioLocation.Null:
-                    result_str += (
-                        f"*{availability_str + class_details.time}* - "
-                        f"{class_details.name} ({class_details.instructor})"
-                    )
-                else:
-                    result_str += (
-                        f"*{availability_str + class_details.time}* - {class_details.name} "
-                        f"@ {class_details.location.value} ({class_details.instructor})"
-                    )
-
-                if class_details.capacity_info.has_info:
-                    if class_details.availability == ClassAvailability.Waitlist:
-                        result_str += f" - {class_details.capacity_info.waitlist_reserved} Member(s) on Waitlist"
-                    else:
-                        result_str += f" - {class_details.capacity_info.remaining} Spot(s) Remaining"
-
+                result_str += class_details.get_string(include_availability=True, include_capacity_info=True)
                 result_str += "\n"
             result_str += "\n"
 
         return result_str
+
+    def get_class_data(self, class_id: str, class_date: Optional[date]) -> Optional[Tuple[date, ClassData]]:
+        for current_class_date, class_datas in self.classes.items():
+            if class_date is not None:
+                if class_date != current_class_date:
+                    continue
+
+            for class_data in class_datas:
+                if class_data.class_id == class_id:
+                    return current_class_date, copy(class_data)
+        return None
 
     def __add__(self, other: ResultData) -> ResultData:
         """

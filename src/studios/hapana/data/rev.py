@@ -17,6 +17,7 @@ ROOM_NAME_TO_STUDIO_TYPE_MAP = {
     "TP - Revised April": StudioType.Rev,
     "Revolution - SAFRA Punggol": StudioType.Rev,
     "TP - August 2025": StudioType.Rev,
+    "TP - March 2026": StudioType.Rev,
 }
 
 # Dictionary of room name strings from response and studio locations
@@ -29,6 +30,7 @@ ROOM_NAME_TO_STUDIO_LOCATION_MAP = {
     "TP - Revised April": StudioLocation.TJPG,
     "Revolution - SAFRA Punggol": StudioLocation.Unknown,
     "TP - August 2025": StudioLocation.TJPG,
+    "TP - March 2026": StudioLocation.TJPG,
 }
 
 # Dictionary of location strings and site ids

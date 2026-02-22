@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import copy
 from datetime import date, datetime, timedelta
 from html import unescape
+from typing import Optional
 
 import pytz
 import requests
@@ -118,7 +119,7 @@ def get_schedule_from_response_soup(
     return result_dict
 
 
-def get_soup_from_response(logger: logging.Logger, response: requests.models.Response) -> BeautifulSoup:
+def get_soup_from_response(logger: logging.Logger, response: requests.models.Response) -> Optional[BeautifulSoup]:
     """
     Parses the response to a BeautifulSoup.
 
@@ -213,6 +214,7 @@ def get_anarchy_schedule_and_instructorid_map(logger: logging.Logger) -> tuple[R
         """
         get_schedule_response = send_get_schedule_request(start_date=start_date, end_date=end_date)
         soup = get_soup_from_response(logger=logger, response=get_schedule_response)
+        get_schedule_response.close()
         if soup is None:
             with results_lock:
                 results.append((ResultData(), {}))
