@@ -265,7 +265,7 @@ class StudiosManager:
         Scheduled runs is triggered in main thread.
 
         """
-        schedule.every(1).minute.do(job_func=self.update_cached_result_data_and_notify_waitlist_available)
+        schedule.every(10).minutes.do(job_func=self.update_cached_result_data_and_notify_waitlist_available)
 
     def schedule_check_ally_access_token(self) -> None:
         """

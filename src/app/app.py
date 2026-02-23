@@ -226,7 +226,7 @@ class App:
         thread.
 
         """
-        schedule.every(5).minutes.do(job_func=self.server.ping_self)
+        schedule.every(10).minutes.do(job_func=self.server.ping_self)
 
     def shutdown(self, _: int, __: Optional[types.FrameType]) -> None:
         """
