@@ -8,7 +8,6 @@ Description:
 import logging
 import os
 import threading
-import tracemalloc
 from copy import deepcopy
 from datetime import date
 from typing import Optional, Tuple
@@ -129,7 +128,6 @@ class StudiosManager:
                 room_name_to_studio_location_map=REV_ROOM_NAME_TO_STUDIO_LOCATION_MAP,
             ),
         }
-        tracemalloc.start()
 
     def update_cached_result_data(self) -> None:
         """
@@ -195,8 +193,6 @@ class StudiosManager:
         with self.cached_result_data_lock.gen_wlock():
             self.cached_result_data = updated_cached_result_data
         self.logger.info("Successfully updated cached result data!")
-        current, peak = tracemalloc.get_traced_memory()
-        self.logger.info(f"[debug] tracemalloc Current: {current/1024**2:.2f} MB; Peak: {peak/1024**2:.2f} MB")
         process = psutil.Process(os.getpid())
         info = process.memory_full_info()
         self.logger.info(
