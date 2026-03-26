@@ -56,6 +56,7 @@ def check_access_token(
       - bool: True if successfully refreshed access token, false otherwise.
 
     """
+    return
     if not is_access_token_expiring(logger, timedelta(days=1)):
         return
 
@@ -444,6 +445,7 @@ def get_ally_schedule_and_instructorid_map(logger: logging.Logger) -> tuple[Resu
       - tuple[ResultData, dict[str, str]]: A tuple containing schedule data and instructor ID mappings.
 
     """
+    return (ResultData(), {})
     if not is_access_token_valid(logger):
         return (ResultData(), {})
 
